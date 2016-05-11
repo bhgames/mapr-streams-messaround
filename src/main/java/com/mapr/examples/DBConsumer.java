@@ -34,8 +34,8 @@ public class DBConsumer {
     Histogram stats = new Histogram(1, 10000000, 2);
     Histogram global = new Histogram(1, 10000000, 2);
 
-    final String TOPIC_FAST_MESSAGES = "/sample-stream:fast-messages";
-    final String TOPIC_SUMMARY_MARKERS = "/sample-stream:summary-markers";
+    final String TOPIC_FAST_MESSAGES = "/user/mapr/streams:fast-messages";
+    final String TOPIC_SUMMARY_MARKERS = "/user/mapr/streams:summary-markers";
 
 
     Table fastMessagesTable = getTable("/apps/fast-messages");

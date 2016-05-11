@@ -17,8 +17,8 @@ import java.util.Properties;
 public class Producer {
     public static void main(String[] args) throws IOException {
 
-        final String TOPIC_FAST_MESSAGES = "/sample-stream:fast-messages";
-        final String TOPIC_SUMMARY_MARKERS = "/sample-stream:summary-markers";
+        final String TOPIC_FAST_MESSAGES = "/user/mapr/streams:fast-messages";
+        final String TOPIC_SUMMARY_MARKERS = "/user/mapr/streams:summary-markers";
 
         // set up the producer
         KafkaProducer<String, String> producer;

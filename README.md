@@ -22,7 +22,7 @@ A *stream* is a collection of topics that you can manage together for security, 
 Run the following command on your MapR cluster:
 
 ```
-$ maprcli stream create -path /sample-stream
+$ maprcli stream create -path /user/mapr/streams
 ```
 
 By default the produce and consume topic permission are defaulted to the creator of the streams, the unix user you are using to run the `maprcli` command.
@@ -30,7 +30,7 @@ By default the produce and consume topic permission are defaulted to the creator
 It is possible to configure the permission by editing the streams, for example to make all the topic available to anybody (public permission) you can run the following command:
 
 ```
-maprcli stream edit -path /sample-stream -produceperm p -consumeperm p -topicperm p
+maprcli stream edit -path /user/mapr/streams -produceperm p -consumeperm p -topicperm p
 ```
 
 This is useful for this example since we want to run the producer and consumer from remote computers too.
@@ -39,13 +39,13 @@ This is useful for this example since we want to run the producer and consumer f
 
 We need two topics for the example program, that are also created with the `maprcli` tool
 ```
-$ maprcli stream topic create -path /sample-stream  -topic fast-messages
-$ maprcli stream topic create -path /sample-stream  -topic summary-markers
+$ maprcli stream topic create -path /user/mapr/streams  -topic fast-messages
+$ maprcli stream topic create -path /user/mapr/streams  -topic summary-markers
 ```
 
 These can be listed
 ```
-$ maprcli stream topic list -path /sample-stream
+$ maprcli stream topic list -path /user/mapr/streams
 topic            partitions  logicalsize  consumers  maxlag  physicalsize
 fast-messages    1           0            0          0       0
 summary-markers  1           0            0          0       0
@@ -79,8 +79,8 @@ scp ./target/mapr-streams-examples-1.0-SNAPSHOT-jar-with-dependencies.jar mapr@<
 ```
 
 
-The producer will send a large number of messages to `/sample-stream:fast-messages`
-along with occasional messages to `/sample-stream:summary-markers`. Since there isn't
+The producer will send a large number of messages to `/user/mapr/streams:fast-messages`
+along with occasional messages to `/user/mapr/streams:summary-markers`. Since there isn't
 any consumer running yet, nobody will receive the messages. 
 
 Any MapR Streams application need the MapR Client library to be executed, for this you just have to add them to the application classpath. 
@@ -129,7 +129,7 @@ drop into the single digit millisecond range.
 At any time you can use the `maprcli` tool to get some information about the topic, for example:
 
 ```
-$ maprcli stream topic info -path /sample-stream -topic fast-messages -json
+$ maprcli stream topic info -path /user/mapr/streams -topic fast-messages -json
 ```
 `-json` is just use to get the topic information as a JSON document.
 
@@ -138,14 +138,14 @@ $ maprcli stream topic info -path /sample-stream -topic fast-messages -json
 
 When you are done playing, you can delete the stream, and all associated topic using the following command:
 ```
-$ maprcli stream delete -path /sample-stream
+$ maprcli stream delete -path /user/mapr/streams
 ```
 
 
 
 ## From Apache Kafka to MapR Streams
 
-1. The topics have move from `"fast-messages"` to `"/sample-stream:fast-messages"` and `"summary-markers"` to `"/sample-stream:summary-markers"`
+1. The topics have move from `"fast-messages"` to `"/user/mapr/streams:fast-messages"` and `"summary-markers"` to `"/user/mapr/streams:summary-markers"`
 2. The [producer](http://maprdocs.mapr.com/51/index.html#MapR_Streams/configuration_parameters_for_producers.html) and [consumer](http://maprdocs.mapr.com/51/index.html#MapR_Streams/configuration_parameters_for_consumers.html) configuration parameters that are not used by MapR Streams are automatically ignored
 3. The producer and Consumer applications are executed with the dependencies of a MapR Client not Apache Kafka.
 

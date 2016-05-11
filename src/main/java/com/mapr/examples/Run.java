@@ -15,6 +15,12 @@ public class Run {
             case "producer":
                 Producer.main(args);
                 break;
+            case "cdc":
+                CDCProducerSim.main(args);
+                break;
+            case "cdc_consumer":
+                CDCConsumer.main(args);
+                break;
             case "consumer":
                 Consumer.main(args);
                 break;
