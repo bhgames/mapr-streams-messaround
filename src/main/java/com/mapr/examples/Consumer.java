@@ -2,36 +2,41 @@ package com.mapr.examples;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.io.Resources;
-import org.HdrHistogram.Histogram;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.Random;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.util.Iterator;
 
-/**
- * This program reads messages from two topics. Messages on "fast-messages" are analyzed
- * to estimate latency (assuming clock synchronization between producer and consumer).
- * <p/>
- * Whenever a message is received on "slow-messages", the stats are dumped.
- */
 public class Consumer {
     public static void main(String[] args) throws IOException {
-        // set up house-keeping
         ObjectMapper mapper = new ObjectMapper();
-        Histogram stats = new Histogram(1, 10000000, 2);
-        Histogram global = new Histogram(1, 10000000, 2);
 
-        final String TOPIC_FAST_MESSAGES = "/sample-stream:fast-messages";
-        final String TOPIC_SUMMARY_MARKERS = "/sample-stream:summary-markers";
+        int msgCounter = 0;
+        int timeouts = 0;
+        String currentTSP = new SimpleDateFormat("yyyyMMddhhmm").format(new Date());
+        String logFile = "/mapr/mapr-us-prod.avant.com/user/mapr/logs/log_" + currentTSP + ".json";
+        File file = new File(logFile);
+        FileWriter fw = new FileWriter(logFile);
+        BufferedWriter bw = new BufferedWriter(fw);
 
-        // and the consumer
+        final String PAYMENT_TRANSACTIONS = "/user/mapr/streams:payment_transactions";
+
         KafkaConsumer<String, String> consumer;
         try (InputStream props = Resources.getResource("consumer.props").openStream()) {
             Properties properties = new Properties();
@@ -42,48 +47,41 @@ public class Consumer {
 
             consumer = new KafkaConsumer<>(properties);
         }
-        consumer.subscribe(Arrays.asList(TOPIC_FAST_MESSAGES, TOPIC_SUMMARY_MARKERS));
-        int timeouts = 0;
-        //noinspection InfiniteLoopStatement
-        while (true) {
-            // read records with a short timeout. If we time out, we don't really care.
+        consumer.subscribe(Arrays.asList(PAYMENT_TRANSACTIONS));
+        boolean stop = false;
+        while (!stop) {
             ConsumerRecords<String, String> records = consumer.poll(200);
+
             if (records.count() == 0) {
                 timeouts++;
             } else {
-                System.out.printf("Got %d records after %d timeouts\n", records.count(), timeouts);
+                    System.out.printf("Got %d records after %d timeouts\n", records.count(), timeouts);
                 timeouts = 0;
             }
             for (ConsumerRecord<String, String> record : records) {
+                if(msgCounter == 1000) {
+                    if (bw != null) {
+                        bw.close();
+                        fw.close();
+                        msgCounter = 0;
+                    }
+                    currentTSP = new SimpleDateFormat("yyyyMMddhhmm").format(new Date());
+                    logFile = "/mapr/mapr-us-prod.avant.com/user/mapr/logs/log_" + currentTSP + ".json";
+                    file = new File(logFile);
+                    fw = new FileWriter(file.getAbsoluteFile());
+                    bw = new BufferedWriter(fw);
+                    // if file doesnt exists, then create it
+                    if (!file.exists()) {
+                        file.createNewFile();
+                     }
+                }
                 switch (record.topic()) {
-                    case TOPIC_FAST_MESSAGES:
-                        // the send time is encoded inside the message
-                        JsonNode msg = mapper.readTree(record.value());
-                        switch (msg.get("type").asText()) {
-                            case "test":
-                                long latency = (long) ((System.nanoTime() * 1e-9 - msg.get("t").asDouble()) * 1000);
-                                stats.recordValue(latency);
-                                global.recordValue(latency);
-                                break;
-                            case "marker":
-                                // whenever we get a marker message, we should dump out the stats
-                                // note that the number of fast messages won't necessarily be quite constant
-                                System.out.printf("%d messages received in period, latency(min, max, avg, 99%%) = %d, %d, %.1f, %d (ms)\n",
-                                        stats.getTotalCount(),
-                                        stats.getValueAtPercentile(0), stats.getValueAtPercentile(100),
-                                        stats.getMean(), stats.getValueAtPercentile(99));
-                                System.out.printf("%d messages received overall, latency(min, max, avg, 99%%) = %d, %d, %.1f, %d (ms)\n",
-                                        global.getTotalCount(),
-                                        global.getValueAtPercentile(0), global.getValueAtPercentile(100),
-                                        global.getMean(), global.getValueAtPercentile(99));
-
-                                stats.reset();
-                                break;
-                            default:
-                                throw new IllegalArgumentException("Illegal message type: " + msg.get("type"));
-                        }
-                        break;
-                    case TOPIC_SUMMARY_MARKERS:
+                    case PAYMENT_TRANSACTIONS:
+                        msgCounter++;
+                        JsonNode msgNode = mapper.readTree(record.value());
+                        System.out.println("msg # " + msgCounter);
+                        bw.write(msgNode.toString() + "\n");
+                        bw.flush();
                         break;
                     default:
                         throw new IllegalStateException("Shouldn't be possible to get message on topic " + record.topic());
